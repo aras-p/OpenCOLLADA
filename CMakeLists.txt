@@ -286,12 +286,6 @@ add_subdirectory(GeneratedSaxParser)
 add_subdirectory(COLLADASaxFrameworkLoader)
 add_subdirectory(COLLADAStreamWriter)
 
-# building COLLADAValidator app
-#add_subdirectory(COLLADAValidator)
-
-# DAE validator app
-#add_subdirectory(DAEValidator)
-
 # Library export
 install(EXPORT LibraryExport DESTINATION ${OPENCOLLADA_INST_CMAKECONFIG} FILE OpenCOLLADATargets.cmake)
 

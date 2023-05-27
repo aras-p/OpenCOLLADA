@@ -1,5 +1,0 @@
-#include "no_warning_begin"
-
-#include <regex>
-
-#include "no_warning_end"
