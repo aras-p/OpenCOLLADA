@@ -13,23 +13,7 @@
 
 #include "CommonIBufferFlusher.h"
 
-#if (defined(WIN64) || defined(_WIN64) || defined(__WIN64__)) || (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(__APPLE__))
-#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)
-#	include <tr1/unordered_map>
-#else
-#	include <unordered_map>
-#endif
-#else
-#	include <tr1/unordered_map>
-#endif
-
-#if defined(_LIBCPP_VERSION) || defined(WIN32)
-// If we're compiling with libc++, create a namespace alias for tr1 that points to std.
-// Not particularly elegant, and largely should be filed under "hack", but it works for OS X with clang for now.
-namespace std {
-    namespace tr1 = std;
-}
-#endif
+#include <unordered_map>
 
 /* size_t for gcc, may want to move this include some place else - campbell */
 #ifdef __GNUC__
@@ -58,7 +42,7 @@ namespace Common
 #else
 		typedef __int64 FilePosType;
 #endif
-	typedef std::tr1::unordered_map<MarkId, FilePosType > MarkIdToFilePos;
+	typedef std::unordered_map<MarkId, FilePosType > MarkIdToFilePos;
 
 	public:
 		static const size_t DEFAUL_BUFFER_SIZE = 64*1024;
