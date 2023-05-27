@@ -254,11 +254,11 @@ if(USE_STATIC_MSVC_RUNTIME)
 endif()
 
 #adding PCRE
-find_package(PCRE)
+#find_package(PCRE)
 if (PCRE_FOUND)
 	message(STATUS "SUCCESSFUL: PCRE found")
 else ()  # if pcre not found building its local copy from ./Externals
-	if (WIN32 OR APPLE)
+	if (1)
 		message("WARNING: Native PCRE not found, taking PCRE from ./Externals")
 		add_definitions(-DPCRE_STATIC)
 		add_subdirectory(${EXTERNAL_LIBRARIES}/pcre)
@@ -274,7 +274,7 @@ add_subdirectory(common/libftoa)
 add_subdirectory(${EXTERNAL_LIBRARIES}/UTF)
 add_subdirectory(common/libBuffer)
 add_subdirectory(${EXTERNAL_LIBRARIES}/MathMLSolver)
-add_subdirectory(${EXTERNAL_LIBRARIES}/zlib)
+#add_subdirectory(${EXTERNAL_LIBRARIES}/zlib)
 
 # building OpenCOLLADA libs
 add_subdirectory(COLLADABaseUtils)
@@ -284,10 +284,10 @@ add_subdirectory(COLLADASaxFrameworkLoader)
 add_subdirectory(COLLADAStreamWriter)
 
 # building COLLADAValidator app
-add_subdirectory(COLLADAValidator)
+#add_subdirectory(COLLADAValidator)
 
 # DAE validator app
-add_subdirectory(DAEValidator)
+#add_subdirectory(DAEValidator)
 
 # Library export
 install(EXPORT LibraryExport DESTINATION ${OPENCOLLADA_INST_CMAKECONFIG} FILE OpenCOLLADATargets.cmake)

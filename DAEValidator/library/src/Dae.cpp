@@ -304,7 +304,7 @@ namespace opencollada
 			if (auto root_node = root())
 			{
 				const auto & nodes = root_node.selectNodes("//*[@id]");
-				for (const auto & node : nodes)
+				for (const auto node : nodes)
 				{
 					string id = node.attribute("id").value();
 					mIdCache.insert(id);

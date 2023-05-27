@@ -162,7 +162,7 @@ namespace opencollada
 
 		// Find xsi:schemaLocation attributes in dae and try to validate against specified xsd documents
 		const auto & elements = dae.root().selectNodes("//*[@xsi:schemaLocation]");
-		for (const auto & element : elements)
+		for (const auto element : elements)
 		{
 			if (auto schemaLocation = element.attribute("schemaLocation"))
 			{
@@ -274,7 +274,7 @@ namespace opencollada
 		int result = 0;
 		map<string, size_t> ids;
 		const auto & nodes = dae.root().selectNodes("//*[@id]");
-		for (const auto & node : nodes)
+		for (const auto node : nodes)
 		{
 			string id = node.attribute("id").value();
 			size_t line = node.line();

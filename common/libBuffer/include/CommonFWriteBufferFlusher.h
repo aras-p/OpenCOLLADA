@@ -23,7 +23,7 @@
 #	include <tr1/unordered_map>
 #endif
 
-#ifdef _LIBCPP_VERSION
+#if defined(_LIBCPP_VERSION) || defined(WIN32)
 // If we're compiling with libc++, create a namespace alias for tr1 that points to std.
 // Not particularly elegant, and largely should be filed under "hack", but it works for OS X with clang for now.
 namespace std {
