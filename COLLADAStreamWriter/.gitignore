@@ -1,8 +1,0 @@
-lib/
-obj/
-bin/
-*.ncb
-*.suo
-*.user
-OpenCOLLADAStreamWriter.sln
-OpenCOLLADAStreamWriter_static.vcxproj*

@@ -1,8 +1,0 @@
-lib/
-obj/
-bin/
-*.ncb
-*.suo
-*.user
-GeneratedSaxParser.sln
-GeneratedSaxParser_static.vcxproj*

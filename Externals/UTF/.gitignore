@@ -1,8 +1,0 @@
-lib/
-obj/
-bin/
-*.ncb
-*.suo
-*.user
-UTF.sln
-UTF_static.vcxproj*

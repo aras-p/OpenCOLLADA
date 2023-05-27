@@ -14,23 +14,9 @@
 #include "CommonIBufferFlusher.h"
 
 #include <unordered_map>
-
-/* size_t for gcc, may want to move this include some place else - campbell */
-#ifdef __GNUC__
-#   include <cstdlib> /* size_t */
-#   include <cstdio>  /* FILE */
-#ifdef __FreeBSD__
-#include <stdint.h> /* int64_t */
-#endif
-#endif
-
-#if __cplusplus > 199711L
-typedef int64_t __int64;
-#else
-#if (defined(__GNUC__) && !defined(__STRICT_ANSI__) && !defined(__MINGW32__)) || (__STDC_VERSION__ >= 199901L)
-typedef int64_t __int64;
-#endif
-#endif
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 namespace Common
 {
@@ -40,7 +26,7 @@ namespace Common
 #ifdef __APPLE__
 		typedef off_t FilePosType;
 #else
-		typedef __int64 FilePosType;
+		typedef int64_t FilePosType;
 #endif
 	typedef std::unordered_map<MarkId, FilePosType > MarkIdToFilePos;
 

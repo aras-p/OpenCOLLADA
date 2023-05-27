@@ -1,8 +1,0 @@
-lib/
-obj/
-bin/
-*.ncb
-*.suo
-*.user
-OpenCOLLADASaxFrameworkLoader.sln
-OpenCOLLADASaxFrameworkLoader_static.vcxproj*
