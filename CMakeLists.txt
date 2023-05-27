@@ -211,6 +211,9 @@ option(USE_LIBXML "Use LibXml2 parser"      ON)
 option(USE_EXPAT  "Use expat parser"        OFF)
 option(USE_STATIC_MSVC_RUNTIME "Use static version of the MSVC run-time library" OFF)
 
+# Parallel compilation on MSVC
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
+
 #adding xml2
 if (USE_LIBXML)
 	add_definitions(
