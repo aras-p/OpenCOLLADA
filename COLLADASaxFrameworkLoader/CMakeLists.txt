@@ -207,7 +207,6 @@ set(SRC
 	src/generated14/COLLADASaxFWLLibraryNodesLoader14.cpp
 	src/generated14/COLLADASaxFWLGeometryLoader14.cpp
 	src/generated14/COLLADASaxFWLColladaParserAutoGen14PrivateFunctionMapFactory.cpp
-	src/generated14/COLLADASaxFWLColladaParserAutoGen14PrivateValidation.cpp
 	src/generated14/COLLADASaxFWLColladaParserAutoGen14PrivateEnums.cpp
 	src/generated14/COLLADASaxFWLColladaParserAutoGen14PrivateFunctionMap.cpp
 	src/generated14/COLLADASaxFWLLibraryMaterialsLoader14.cpp
@@ -240,7 +239,6 @@ set(SRC
 	src/generated15/COLLADASaxFWLLibraryJointsLoader15.cpp
 	src/generated15/COLLADASaxFWLLibraryNodesLoader15.cpp
 	src/generated15/COLLADASaxFWLSourceArrayLoader15.cpp
-	src/generated15/COLLADASaxFWLColladaParserAutoGen15PrivateValidation.cpp
 	src/generated15/COLLADASaxFWLLibraryKinematicsModelsLoader15.cpp
 	src/generated15/COLLADASaxFWLVisualSceneLoader15.cpp
 	src/generated15/COLLADASaxFWLLibraryImagesLoader15.cpp
