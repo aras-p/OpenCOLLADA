@@ -10,10 +10,6 @@ http://www.opensource.org/licenses/mit-license.php
 
 #include "COLLADASaxFWLStableHeaders.h"
 #include "COLLADASaxFWLSidAddress.h"
-#include "COLLADABUPcreCompiledPattern.h"
-
-#include "pcre.h"
-
 
 namespace COLLADASaxFWL
 {
@@ -107,144 +103,85 @@ namespace COLLADASaxFWL
 			}
 		}
 
-		const char * secondPart = sidAddress.c_str() + lastSidSeparator + 1;
-		int secondPartLength = (int)sidAddress.length() - (int)lastSidSeparator - 1;
-
-
-		// regular expression: "(.+)\.(.+)"
-		static const COLLADABU::PcreCompiledPattern accessorNameRegexCompiledPattern("(.+)\\.(.+)");
-		pcre* accessorNameRegex = accessorNameRegexCompiledPattern.getCompiledPattern();
-
-		int accessorNameMatches[regExpMatchesVectorLength];
-
-
-		int  accessorNameResult = pcre_exec(
-											accessorNameRegex,			/* the compiled pattern */
-											0,							/* no extra data - we didn't study the pattern */
-											secondPart,					/* the subject string */
-											secondPartLength,			/* the length of the subject */
-											0,							/* start at offset 0 in the subject */
-											0,							/* default options */
-											accessorNameMatches,		/* output vector for substring information */
-											regExpMatchesVectorLength);	/* number of elements in the output vector */
-
-
-		if ( accessorNameResult >= 0 )
+		// Original code was using regular expression: "(.+)\.(.+)"
+		size_t lastSidStart = lastSidSeparator + 1;
+		size_t dotPos = sidAddress.find_last_of('.', lastSidStart);
+		if (dotPos != String::npos && dotPos > lastSidStart + 1 && dotPos + 1 < sidAddress.length())
 		{
-			// first try the name accessor
-			// this matches only, if the name accessor is present. Therefor there are exactly two matches 
-			int idOrSidStart = accessorNameMatches[2*1];
-			int idOrSidEnd = accessorNameMatches[2*1+1];
-			COLLADABU_ASSERT( idOrSidStart >= 0 );
-			if ( idOrSidStart >= 0 )
+			// the name accessor is present
+			String idOrSid = sidAddress.substr(lastSidStart, dotPos - lastSidStart);
+			if (hasId)
 			{
-				if ( hasId )
-				{
-					mSids.push_back(String( secondPart + idOrSidStart, idOrSidEnd - idOrSidStart));
-				}
-				else
-				{
-					if ( secondPart[idOrSidStart] != '.' )
-						mId.assign(secondPart + idOrSidStart, idOrSidEnd - idOrSidStart);
-					hasId = true;
-				}
-			}
-
-			int& nameStart = accessorNameMatches[2*2];
-			int& nameEnd = accessorNameMatches[2*2+1];
-			COLLADABU_ASSERT(nameStart>=0);
-			if ( nameStart>=0 )
-			{
-				mMemberSelectionName.assign(secondPart + nameStart, nameEnd - nameStart);
-			}
-
-			mMemberSelection = MEMBER_SELECTION_NAME;
-
-			mIsValid = true;
-		}
-		else 
-		{
-			// regular expression: "([^(]+)(?:\(([0-9]+)\))?(?:\(([0-9]+)\))?"
-			static const COLLADABU::PcreCompiledPattern accessorIndexRegexCompiledPattern("([^(]+)(?:\\(([0-9]+)\\))?(?:\\(([0-9]+)\\))?");
-			pcre* accessorIndexRegex = accessorIndexRegexCompiledPattern.getCompiledPattern();
-
-			int accessorIndexMatches[regExpMatchesVectorLength];
-
-			int  accessorIndexResult = pcre_exec(
-				accessorIndexRegex,			/* the compiled pattern */
-				0,							/* no extra data - we didn't study the pattern */
-				secondPart,					/* the subject string */
-				secondPartLength,			/* the length of the subject */
-				0,							/* start at offset 0 in the subject */
-				0,							/* default options */
-				accessorIndexMatches,		/* output vector for substring information */
-				regExpMatchesVectorLength);
-
-			if ( accessorIndexResult >= 0 )
-			{
-				//check all other cases
-				// the first match is id or sid
-				int& idOrSidStart = accessorIndexMatches[2*1];
-				int& idOrSidEnd = accessorIndexMatches[2*1+1];
-				COLLADABU_ASSERT( idOrSidStart >= 0 );
-
-				if ( idOrSidStart >= 0 )
-				{
-					if ( hasId )
-					{
-						mSids.push_back(String( secondPart + idOrSidStart, idOrSidEnd - idOrSidStart));
-					}
-					else
-					{
-						if ( secondPart[idOrSidStart] != '.' )
-							mId.assign(secondPart + idOrSidStart, idOrSidEnd - idOrSidStart);
-						hasId = true;
-					}
-				}
-				mMemberSelection = MEMBER_SELECTION_NONE;
-
-				// this one matches only if two indices are specified. In case of one index, only the next matches
-				int& firstIndexStart = accessorIndexMatches[2*2];
-				int& firstIndexEnd = accessorIndexMatches[2*2+1];
-				if ( firstIndexStart >= 0)
-				{
-					mMemberSelection = MEMBER_SELECTION_ONE_INDEX;
-					bool failed = false;
-					const char* bufferBegin = secondPart + firstIndexStart;
-					mFirstIndex = (size_t)GeneratedSaxParser::Utils::toUint32(&bufferBegin, secondPart + firstIndexEnd, failed);
-					if ( failed )
-					{
-						mIsValid = false;
-						return;
-					}
-				}
-
-				// this one matches if two indices or only index are specified. 
-				int& secondIndexStart = accessorIndexMatches[2*3];
-				int& secondIndexEnd = accessorIndexMatches[2*3+1];
-				if ( secondIndexStart >= 0)
-				{
-					bool failed = false;
-					const char* bufferBegin = secondPart + secondIndexStart;
-					size_t index = (size_t)GeneratedSaxParser::Utils::toUint32(&bufferBegin, secondPart + secondIndexEnd, failed);
-					
-					mMemberSelection = MEMBER_SELECTION_TWO_INDICES;
-					mSecondIndex = index;
-					if ( failed )
-					{
-						mIsValid = false;
-						return;
-					}
-				}
-
-				mIsValid = true;
+				mSids.push_back(idOrSid);
 			}
 			else
 			{
+				if (sidAddress[lastSidStart] != '.')
+					mId = idOrSid;
+				hasId = true;
+			}
+
+			mMemberSelectionName = sidAddress.substr(dotPos + 1);
+			mMemberSelection = MEMBER_SELECTION_NAME;
+
+			mIsValid = true;
+
+		}
+		else
+		{
+			// Original code was using a regular expression: "([^(]+)(?:\(([0-9]+)\))?(?:\(([0-9]+)\))?"
+			size_t openParenPos = sidAddress.find_first_of('(', lastSidStart);
+			size_t closeParenPos = sidAddress.find_first_of(')', lastSidStart);
+			size_t idOrSidEnd = sidAddress.size();
+			mMemberSelection = MEMBER_SELECTION_NONE;
+			if (openParenPos != String::npos && closeParenPos != String::npos && openParenPos + 1 < closeParenPos)
+			{
+				// Have "(number)"
+				idOrSidEnd = openParenPos;
+				mMemberSelection = MEMBER_SELECTION_ONE_INDEX;
+				bool failed = false;
+				const char* bufferBegin = sidAddress.c_str() + openParenPos + 1;
+				mFirstIndex = (size_t)GeneratedSaxParser::Utils::toUint32(&bufferBegin, sidAddress.c_str() + closeParenPos, failed);
+				if (failed)
+				{
+					mIsValid = false;
+					return;
+				}
+
+				// Check if we have another "(number)"
+				size_t openParen2Pos = sidAddress.find_first_of('(', closeParenPos + 1);
+				size_t closeParen2Pos = sidAddress.find_first_of(')', closeParenPos + 1);
+				if (openParen2Pos != String::npos && closeParen2Pos != String::npos && openParen2Pos + 1 < closeParen2Pos)
+				{
+					mMemberSelection = MEMBER_SELECTION_TWO_INDICES;
+					failed = false;
+					bufferBegin = sidAddress.c_str() + openParen2Pos + 1;
+					mSecondIndex = (size_t)GeneratedSaxParser::Utils::toUint32(&bufferBegin, sidAddress.c_str() + closeParen2Pos, failed);
+					if (failed)
+					{
+						mIsValid = false;
+						return;
+					}
+				}
+			}
+
+			String idOrSid = sidAddress.substr(lastSidStart, idOrSidEnd - lastSidStart);
+			if (idOrSid.empty())
+			{
 				mIsValid = false;
+				return;
+			}
+			if (hasId)
+			{
+				mSids.push_back(idOrSid);
+			}
+			else
+			{
+				if (sidAddress[lastSidStart] != '.')
+					mId = idOrSid;
+				hasId = true;
 			}
 		}
-
 	}
 
 	//------------------------------

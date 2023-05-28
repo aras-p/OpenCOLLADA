@@ -17,7 +17,6 @@ set(INST_SRC
 	include/COLLADABUhash_map.h
 	include/COLLADABUStringUtils.h
 	include/COLLADABUPrerequisites.h
-	include/COLLADABUPcreCompiledPattern.h
 	include/COLLADABUUtils.h
 	include/COLLADABUPlatform.h
 	include/COLLADABUURI.h
@@ -36,7 +35,6 @@ set(SRC
 	src/COLLADABUUtils.cpp
 	src/COLLADABUURI.cpp
 	src/COLLADABUPrecompiledHeaders.cpp
-	src/COLLADABUPcreCompiledPattern.cpp
 	src/COLLADABUIDList.cpp
 	src/COLLADABUStringUtils.cpp
 	src/COLLADABUHashFunctions.cpp

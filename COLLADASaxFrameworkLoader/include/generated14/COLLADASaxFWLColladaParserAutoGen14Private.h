@@ -17,7 +17,6 @@
 #include "GeneratedSaxParserPrerequisites.h"
 #include "GeneratedSaxParserTypes.h"
 #include "GeneratedSaxParserParserTemplate.h"
-#include "pcre.h"
 #include "COLLADASaxFWLColladaParserAutoGen14Attributes.h"
 #include "COLLADASaxFWLColladaParserAutoGen14.h"
 #include "COLLADASaxFWLColladaParserAutoGen14ValidationData.h"

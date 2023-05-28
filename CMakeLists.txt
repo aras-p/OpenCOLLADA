@@ -256,22 +256,6 @@ if(USE_STATIC_MSVC_RUNTIME)
 	endforeach()
 endif()
 
-#adding PCRE
-#find_package(PCRE)
-if (PCRE_FOUND)
-	message(STATUS "SUCCESSFUL: PCRE found")
-else ()  # if pcre not found building its local copy from ./Externals
-	if (1)
-		message("WARNING: Native PCRE not found, taking PCRE from ./Externals")
-		add_definitions(-DPCRE_STATIC)
-		add_subdirectory(${EXTERNAL_LIBRARIES}/pcre)
-		set(PCRE_INCLUDE_DIR ${libpcre_include_dirs})
-		set(PCRE_LIBRARIES pcre)
-	else ()
-		message("ERROR: PCRE not found, please install pcre library")
-	endif ()
-endif ()
-
 # building required libs
 add_subdirectory(common/libftoa)
 add_subdirectory(${EXTERNAL_LIBRARIES}/UTF)

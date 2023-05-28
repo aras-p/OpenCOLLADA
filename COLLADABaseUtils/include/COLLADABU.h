@@ -20,7 +20,6 @@
 #include "COLLADABUhash_map.h"
 #include "COLLADABUIDList.h"
 #include "COLLADABUNativeString.h"
-#include "COLLADABUPcreCompiledPattern.h"
 #include "COLLADABUPlatform.h"
 #include "COLLADABUStringUtils.h"
 #include "COLLADABUURI.h"

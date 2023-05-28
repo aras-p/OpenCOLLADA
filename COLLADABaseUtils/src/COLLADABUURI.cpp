@@ -11,11 +11,9 @@
 #include "COLLADABUStableHeaders.h"
 #include "COLLADABUURI.h"
 #include "COLLADABUStringUtils.h"
-#include "COLLADABUPcreCompiledPattern.h"
 #include "COLLADABUHashFunctions.h"
 
 #include <algorithm>
-#include "pcre.h"
 
 namespace COLLADABU
 {
@@ -127,17 +125,6 @@ namespace COLLADABU
 		std::string sResult(pStart, pEnd);
 		delete [] pStart;
 		return sResult;
-	}
-
-
-	void setStringFromMatches(String& matchString, const String& entireString, int *resultPositions, int index)
-	{
-		int& startPosition = resultPositions[2*index];
-		int& endPosition = resultPositions[2*index+1];
-		if ( startPosition >= 0)
-		{
-			matchString.assign( entireString, startPosition, endPosition - startPosition);
-		}
 	}
 
 
@@ -290,56 +277,34 @@ namespace COLLADABU
 
 			// The following implementation cannot handle paths like this:
 			// /tmp/se.3/file
-
-			// regular expression: "(.*/)?(.*)?"
-			static const PcreCompiledPattern findDirCompiledPattern("(.*/)?(.*)?");
-
-			pcre* findDir = findDirCompiledPattern.getCompiledPattern();
-
-
-			// regular expression: "([^.]*)?(\.(.*))?"
-			static const PcreCompiledPattern findExtCompiledPattern("([^.]*)?(\\.(.*))?");
-			pcre* findExt = findExtCompiledPattern.getCompiledPattern();
 			
 			String tmpFile;
 			dir.clear();
 			baseName.clear();
 			extension.clear();
 
-			int dirMatches[regExpMatchesVectorLength];
+			// Original code was using regexp "(.*/)?(.*)?" to find directory vs file path.
+			size_t lastSlashPos = path.find_last_of('/');
+			size_t fileStartPos = 0;
+			if (lastSlashPos != String::npos)
+			{
+				dir = path.substr(0, lastSlashPos + 1);
+				fileStartPos = lastSlashPos + 1;
+			}
+			std::string fileName = path.substr(fileStartPos);
 
-			int  dirResult = pcre_exec(
-										findDir,           /* the compiled pattern */
-										0,                 /* no extra data - we didn't study the pattern */
-										path.c_str(),      /* the subject string */
-										(int)path.size(),  /* the length of the subject */
-										0,                 /* start at offset 0 in the subject */
-										0,                 /* default options */
-										dirMatches,     /* output vector for substring information */
-										regExpMatchesVectorLength); /* number of elements in the output vector */
-
-			if ( dirResult >= 0 )
-			{	
-				setStringFromMatches(dir, path, dirMatches, 1);
-				setStringFromMatches(tmpFile, path, dirMatches, 2);
-
-				int extMatches[regExpMatchesVectorLength];
-
-				int  extResult = pcre_exec(
-											findExt,           /* the compiled pattern */
-											0,                 /* no extra data - we didn't study the pattern */
-											tmpFile.c_str(),      /* the subject string */
-											(int)tmpFile.size(),  /* the length of the subject */
-											0,                 /* start at offset 0 in the subject */
-											0,                 /* default options */
-											extMatches,     /* output vector for substring information */
-											regExpMatchesVectorLength); /* number of elements in the output vector */
-
-				
-				if ( extResult >= 0 )
+			if (!fileName.empty())
+			{
+				// Original code was using regexp "([^.]*)?(\.(.*))?" to find extension
+				size_t firstDotPos = fileName.find_first_of('.');
+				if (firstDotPos == String::npos)
 				{
-					setStringFromMatches(baseName, tmpFile, extMatches, 1);
-					setStringFromMatches(extension, tmpFile, extMatches, 3);
+					baseName = fileName;
+				}
+				else
+				{
+					baseName = fileName.substr(0, firstDotPos);
+					extension = fileName.substr(firstDotPos + 1);
 				}
 			}
 	}
@@ -913,38 +878,76 @@ namespace COLLADABU
 			return true;
 		}
 
-
+		// Original code was using a regular expression:
 		// This regular expression for parsing URI references comes from the URI spec:
 		//   http://tools.ietf.org/html/rfc3986#appendix-B
 		// regular expression: "^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?"
-		static const PcreCompiledPattern matchUriCompiledPattern("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
-		pcre* matchUri = matchUriCompiledPattern.getCompiledPattern();
 
-
-		int uriMatches[regExpMatchesVectorLength];
-
-		int  uriResult = pcre_exec(
-									matchUri,					/* the compiled pattern */
-									0,							/* no extra data - we didn't study the pattern */
-									uriRef.c_str(),				/* the subject string */
-									(int)uriRef.size(),			/* the length of the subject */
-									0,							/* start at offset 0 in the subject */
-									0,							/* default options */
-									uriMatches,				/* output vector for substring information */
-									regExpMatchesVectorLength);		/* number of elements in the output vector */
-
-
-		if ( uriResult >= 0 )
+		String uri = uriRef;
+		size_t fragmentPos = uri.find_first_of('#');
+		if (fragmentPos != String::npos)
 		{
-			setStringFromMatches(scheme, uriRef, uriMatches, 2);
-			setStringFromMatches(authority, uriRef, uriMatches, 4);
-			setStringFromMatches(path, uriRef, uriMatches, 5);
-			setStringFromMatches(query, uriRef, uriMatches, 6);
-			setStringFromMatches(fragment, uriRef, uriMatches, 9);
-			return true;
+			fragment = uri.substr(fragmentPos + 1);
+			uri.resize(fragmentPos);
+		}
+		else
+		{
+			fragment.clear();
 		}
 
-		return false;
+		size_t queryPos = uri.find_first_of('?');
+		if (queryPos != String::npos)
+		{
+			query = uri.substr(queryPos + 1);
+			uri.resize(queryPos);
+		}
+		else
+		{
+			query.clear();
+		}
+
+		String schemeSep = "://";
+		size_t schemeEndPos = uri.find(schemeSep);
+		bool hadDoubleSlash = false;
+		if (schemeEndPos != String::npos)
+		{
+			scheme = uri.substr(0, schemeEndPos);
+			uri = uri.substr(schemeEndPos + schemeSep.size());
+			hadDoubleSlash = true;
+		}
+		else
+		{
+			scheme.clear();
+		}
+
+		if (!hadDoubleSlash && uri.size() >= 2 && uri[0] == '/' && uri[1] == '/')
+		{
+			hadDoubleSlash = true;
+			uri = uri.substr(2);
+		}
+
+		size_t pathPos = uri.find_first_of('/');
+		if (pathPos != String::npos)
+		{
+			path = uri.substr(pathPos + 1);
+			uri.resize(pathPos);
+			authority = uri;
+		}
+		else
+		{
+			if (hadDoubleSlash)
+			{
+				authority = uri;
+				path.clear();
+			}
+			else
+			{
+				authority.clear();
+				path = uri;
+			}
+		}
+
+		return true;
 	}
 
 	namespace {
@@ -1061,9 +1064,6 @@ namespace COLLADABU
 
 	String URI::toNativePath(Utils::SystemType type) const
     {
-//		String scheme, authority, path, query, fragment;
-//		parseUriRef(uriRef, scheme, authority, path, query, fragment);
-
 		// Make sure we have a file scheme URI, or that it doesn't have a scheme
 		if (!mScheme.empty()  &&  mScheme != "file")
 			return "";
