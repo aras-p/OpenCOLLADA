@@ -268,7 +268,6 @@ set(TARGET_LIBS
 	GeneratedSaxParser
 	OpenCOLLADAFramework
 	MathMLSolver
-	${PCRE_LIBRARIES}
 )
 
 # For parallel building.
@@ -295,7 +294,6 @@ include_directories(
 	${libBaseUtils_include_dirs}
 	${libFramework_include_dirs}
 	${libGeneratedSaxParser_include_dirs}
-	${PCRE_INCLUDE_DIR}
 )
 
 opencollada_add_lib(${name} "${SRC}" "${TARGET_LIBS}")
