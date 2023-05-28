@@ -1,8 +1,0 @@
-project(lib3ds)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OPENCOLLADA_INST_LIBRARY}/lib)
-
-add_subdirectory(src)
-add_subdirectory(examples)
