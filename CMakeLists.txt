@@ -208,7 +208,6 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL "" FORCE )
 option(USE_STATIC "Build static libraries"  ON)
 option(USE_SHARED "Build shared libraries"  OFF)
 option(USE_LIBXML "Use LibXml2 parser"      ON)
-option(USE_EXPAT  "Use expat parser"        OFF)
 option(USE_STATIC_MSVC_RUNTIME "Use static version of the MSVC run-time library" OFF)
 
 # Parallel compilation on MSVC
@@ -235,12 +234,6 @@ if (USE_LIBXML)
 			message("ERROR: LibXml2 not found, please install xml2 library (for Debian libxml2-dev)")
 		endif ()
 	endif ()
-endif ()
-
-if (USE_EXPAT)
-	add_definitions(-DGENERATEDSAXPARSER_XMLPARSER_EXPAT)
-	message("FATAL: EXPAT support not implemented")
-	# TODO:: use externals
 endif ()
 
 if(USE_STATIC_MSVC_RUNTIME)
