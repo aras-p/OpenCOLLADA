@@ -29,7 +29,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 namespace MathML
 {
     const static char URL_CONTAINER_ID_DELIMITER = '#';
-    const static String FILE_PROTOCOL = "file:///";
 
     // CONSTANTS FOR XML PARSING AND REPRESENTATION
     const static String UNKNOWN_ELEMENT = "UNKNOWN_ELEMENT";

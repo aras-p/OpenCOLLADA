@@ -14,9 +14,6 @@
 #include "COLLADABUPrerequisites.h"
 
 #include <sstream>
-#include <fstream>
-#include <map>
-#include <vector>
 
 
 namespace COLLADABU
@@ -35,17 +32,7 @@ namespace COLLADABU
 			WINDOWS
 		};
 
-        typedef std::map<String, unsigned int> EntityNameMap;
-        typedef std::pair<String, unsigned int> EntityNamePair;
-        static EntityNameMap entityNames;
-
-
     public:
-
-
-        static const String FILE_PROTOCOL;
-        static const String FILE_DELIMITER;
-        static const char FILE_DELIMITER_CHAR;
 
 		static const String EMPTY_STRING;
 
@@ -158,27 +145,6 @@ namespace COLLADABU
          * @param replaceString The replace string.
          */
         static void stringFindAndReplace ( String& source, const String searchString, const String replaceString );
-
-        /**
-         * Splits a string by the given seperator string and push the 
-         * parts in a vector.
-         * @param String & text
-         * @param String & separators
-         * @param std::vector<String> & words
-         */
-        static void split ( const String& text, const String& separators, std::vector<String>& words );
-
-
-		static bool createDirectoryIfNeeded( const WideString &pathString );
-		static bool createDirectoryIfNeeded( const String &pathString );
-		static bool createDirectoryRecursive( const WideString &pathString );
-		static bool createDirectoryRecursive( const String &pathString );
-		static bool directoryExists( const WideString &pathString );
-		static bool directoryExists( const String &pathString );
-
-		static bool copyFile( const String &source, const String &destination );
-        static bool deleteFile(const String &pathString);
-		static bool fileExistsAndIsReadable( const String &pathString );
     };
 }
 

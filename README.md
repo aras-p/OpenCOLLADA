@@ -5,7 +5,7 @@ A fork of [OpenCOLLADA](https://github.com/KhronosGroup/OpenCOLLADA) which seems
 ### Changes from official project
 
 * Applied [Blender patch](https://projects.blender.org/blender/blender/src/commit/63f211475/build_files/build_environment/patches/opencollada.diff)
-* Build: Fix build with VS2022, and in general require at least C++11.
+* Build: Fix build with Visual Studio 2022 / Clang 14, and in general require at least C++11.
 * Build: CMake parallel compilation in MSVC.
 * Build: Removed SCons build system and Visual Studio / Xcode project files.
 * Cleanup: Removed 3dsmax, Maya plugins; Validator tools; 3ds/ma/ogre converters; G3D browser; website files;
@@ -14,6 +14,7 @@ A fork of [OpenCOLLADA](https://github.com/KhronosGroup/OpenCOLLADA) which seems
   do the parsing manually.
 * Cleanup: Removed template.cpp/template.h files that I have no idea what were there for.
 * Cleanup: Removed all code related to unused GENERATEDSAXPARSER_VALIDATION define.
+* Cleanup: Removed various unused code.
 
 ### Build
 
