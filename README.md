@@ -8,6 +8,7 @@ A fork of [OpenCOLLADA](https://github.com/KhronosGroup/OpenCOLLADA) which seems
 * Build: Fix build with Visual Studio 2022 / Clang 14, and in general require at least C++11.
 * Build: CMake parallel compilation in MSVC.
 * Build: Removed SCons build system and Visual Studio / Xcode project files.
+* Build: Updated embedded `libxml2` version from 2.6.32 (2008) to 2.11.8 (2024).
 * Cleanup: Removed 3dsmax, Maya plugins; Validator tools; 3ds/ma/ogre converters; G3D browser; website files;
   xsd2cppsax tool; Cg, expat, lib3ds, MayaDataModel, zlib, zziplib embedded externals.
 * Refactor: Removed usage of `pcre` regular expressions library; in the two places that were using it (URI and SidAddress)
