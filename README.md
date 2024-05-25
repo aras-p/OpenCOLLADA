@@ -34,3 +34,9 @@ same run-time library option.
 * `COLLADAStreamWriter` - library to write COLLADA files
 * `Externals` - third party libraries used for building
 * `GeneratedSaxParser` - library used to load xml files in the way used by COLLADASaxFrameworkLoader
+
+### External Libraries
+
+* `Externals/LibXML` - [libxml2](https://gitlab.gnome.org/GNOME/libxml2) version 2.6.32 (2008).
+* `Externals/MathMLSolver` - origin unknown, Copyright (c) 2007 netAllied GmbH, feels like it is not really "external".
+* `Externals/UTF` - origin unknown, Copyright 2001-2004 Unicode, Inc, from around 2004.
