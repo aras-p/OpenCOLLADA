@@ -225,6 +225,14 @@ if (USE_LIBXML)
 	else ()  # if xml2 not found building its local copy from ./Externals
 		if (WIN32)
 			message("WARNING: Native LibXml2 not found, taking LibXml from ./Externals")
+			set(BUILD_SHARED_LIBS OFF)
+			set(LIBXML2_WITH_DEBUG OFF)
+			set(LIBXML2_WITH_ZLIB OFF)
+			set(LIBXML2_WITH_LZMA OFF)
+			set(LIBXML2_WITH_PYTHON OFF)
+			set(LIBXML2_WITH_ICONV OFF)
+			set(LIBXML2_WITH_TESTS OFF)
+			set(LIBXML2_WITH_PROGRAMS OFF)
 			add_subdirectory(${EXTERNAL_LIBRARIES}/LibXML)
 			set(LIBXML2_INCLUDE_DIR
 				${libxml_include_dirs}
