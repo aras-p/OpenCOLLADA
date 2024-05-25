@@ -14,14 +14,17 @@
 #define IN_LIBXML
 #include "libxml.h"
 
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 #include <string.h>
 
 #include <libxml/globals.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/threads.h>
+
+#include "private/error.h"
+#include "private/globals.h"
+#include "private/threads.h"
+#include "private/tree.h"
 
 /* #define DEBUG_GLOBALS */
 
@@ -37,36 +40,30 @@
 /*
  * Mutex to protect "ForNewThreads" variables
  */
-static xmlMutexPtr xmlThrDefMutex = NULL;
+static xmlMutex xmlThrDefMutex;
 
 /**
  * xmlInitGlobals:
  *
- * Additional initialisation for multi-threading
+ * DEPRECATED: Alias for xmlInitParser.
  */
-void xmlInitGlobals(void)
-{
-    xmlThrDefMutex = xmlNewMutex();
+void xmlInitGlobals(void) {
+    xmlInitParser();
 }
 
 /**
- * xmlCleanupGlobals:
+ * xmlInitGlobalsInternal:
  *
- * Additional cleanup for multi-threading
+ * Additional initialisation for multi-threading
  */
-void xmlCleanupGlobals(void)
-{
-    if (xmlThrDefMutex != NULL) {
-	xmlFreeMutex(xmlThrDefMutex);
-	xmlThrDefMutex = NULL;
-    }
-    __xmlGlobalInitMutexDestroy();
+void xmlInitGlobalsInternal(void) {
+    xmlInitMutex(&xmlThrDefMutex);
 }
 
 /************************************************************************
- * 									*
+ *									*
  *	All the user accessible global variables of the library		*
- * 									*
+ *									*
  ************************************************************************/
 
 /*
@@ -91,7 +88,7 @@ xmlStrdupFunc xmlMemStrdup = (xmlStrdupFunc) xmlMemoryStrdup;
  *
  * The variable holding the libxml free() implementation
  */
-xmlFreeFunc xmlFree = (xmlFreeFunc) free;
+xmlFreeFunc xmlFree = free;
 /**
  * xmlMalloc:
  * @size:  the size requested in bytes
@@ -100,18 +97,18 @@ xmlFreeFunc xmlFree = (xmlFreeFunc) free;
  *
  * Returns a pointer to the newly allocated block or NULL in case of error
  */
-xmlMallocFunc xmlMalloc = (xmlMallocFunc) malloc;
+xmlMallocFunc xmlMalloc = malloc;
 /**
  * xmlMallocAtomic:
  * @size:  the size requested in bytes
  *
  * The variable holding the libxml malloc() implementation for atomic
- * data (i.e. blocks not containings pointers), useful when using a
+ * data (i.e. blocks not containing pointers), useful when using a
  * garbage collecting allocator.
  *
  * Returns a pointer to the newly allocated block or NULL in case of error
  */
-xmlMallocFunc xmlMallocAtomic = (xmlMallocFunc) malloc;
+xmlMallocFunc xmlMallocAtomic = malloc;
 /**
  * xmlRealloc:
  * @mem: an already allocated block of memory
@@ -121,7 +118,19 @@ xmlMallocFunc xmlMallocAtomic = (xmlMallocFunc) malloc;
  *
  * Returns a pointer to the newly reallocated block or NULL in case of error
  */
-xmlReallocFunc xmlRealloc = (xmlReallocFunc) realloc;
+xmlReallocFunc xmlRealloc = realloc;
+/**
+ * xmlPosixStrdup
+ * @cur:  the input char *
+ *
+ * a strdup implementation with a type signature matching POSIX
+ *
+ * Returns a new xmlChar * or NULL
+ */
+static char *
+xmlPosixStrdup(const char *cur) {
+    return((char*) xmlCharStrdup(cur));
+}
 /**
  * xmlMemStrdup:
  * @str: a zero terminated string
@@ -130,14 +139,13 @@ xmlReallocFunc xmlRealloc = (xmlReallocFunc) realloc;
  *
  * Returns the copy of the string or NULL in case of error
  */
-xmlStrdupFunc xmlMemStrdup = (xmlStrdupFunc) xmlStrdup;
+xmlStrdupFunc xmlMemStrdup = xmlPosixStrdup;
 #endif /* DEBUG_MEMORY_LOCATION || DEBUG_MEMORY */
 
 #include <libxml/threads.h>
 #include <libxml/globals.h>
 #include <libxml/SAX.h>
 
-#undef	docbDefaultSAXHandler
 #undef	htmlDefaultSAXHandler
 #undef	oldXMLWDcompatibility
 #undef	xmlBufferAllocScheme
@@ -148,6 +156,7 @@ xmlStrdupFunc xmlMemStrdup = (xmlStrdupFunc) xmlStrdup;
 #undef	xmlGenericError
 #undef	xmlStructuredError
 #undef	xmlGenericErrorContext
+#undef	xmlStructuredErrorContext
 #undef	xmlGetWarningsDefaultValue
 #undef	xmlIndentTreeOutput
 #undef  xmlTreeIndentString
@@ -175,6 +184,8 @@ const char *xmlParserVersion = LIBXML_VERSION_STRING LIBXML_VERSION_EXTRA;
 /**
  * xmlBufferAllocScheme:
  *
+ * DEPRECATED: Don't use.
+ *
  * Global setting, default allocation policy for buffers, default is
  * XML_BUFFER_ALLOC_EXACT
  */
@@ -182,6 +193,8 @@ xmlBufferAllocationScheme xmlBufferAllocScheme = XML_BUFFER_ALLOC_EXACT;
 static xmlBufferAllocationScheme xmlBufferAllocSchemeThrDef = XML_BUFFER_ALLOC_EXACT;
 /**
  * xmlDefaultBufferSize:
+ *
+ * DEPRECATED: Don't use.
  *
  * Global setting, default buffer size. Default value is BASE_BUFFER_SIZE
  */
@@ -201,7 +214,9 @@ int oldXMLWDcompatibility = 0; /* DEPRECATED */
 /**
  * xmlParserDebugEntities:
  *
- * Global setting, asking the parser to print out debugging informations.
+ * DEPRECATED: Don't use
+ *
+ * Global setting, asking the parser to print out debugging information.
  * while handling entities.
  * Disabled by default
  */
@@ -209,6 +224,8 @@ int xmlParserDebugEntities = 0;
 static int xmlParserDebugEntitiesThrDef = 0;
 /**
  * xmlDoValidityCheckingDefaultValue:
+ *
+ * DEPRECATED: Use the modern options API with XML_PARSE_DTDVALID.
  *
  * Global setting, indicate that the parser should work in validating mode.
  * Disabled by default.
@@ -218,13 +235,17 @@ static int xmlDoValidityCheckingDefaultValueThrDef = 0;
 /**
  * xmlGetWarningsDefaultValue:
  *
- * Global setting, indicate that the parser should provide warnings.
+ * DEPRECATED: Don't use
+ *
+ * Global setting, indicate that the DTD validation should provide warnings.
  * Activated by default.
  */
 int xmlGetWarningsDefaultValue = 1;
 static int xmlGetWarningsDefaultValueThrDef = 1;
 /**
  * xmlLoadExtDtdDefaultValue:
+ *
+ * DEPRECATED: Use the modern options API with XML_PARSE_DTDLOAD.
  *
  * Global setting, indicate that the parser should load DTD while not
  * validating.
@@ -235,6 +256,8 @@ static int xmlLoadExtDtdDefaultValueThrDef = 0;
 /**
  * xmlPedanticParserDefaultValue:
  *
+ * DEPRECATED: Use the modern options API with XML_PARSE_PEDANTIC.
+ *
  * Global setting, indicate that the parser be pedantic
  * Disabled by default.
  */
@@ -243,15 +266,19 @@ static int xmlPedanticParserDefaultValueThrDef = 0;
 /**
  * xmlLineNumbersDefaultValue:
  *
+ * DEPRECATED: The modern options API always enables line numbers.
+ *
  * Global setting, indicate that the parser should store the line number
- * in the content field of elements in the DOM tree. 
+ * in the content field of elements in the DOM tree.
  * Disabled by default since this may not be safe for old classes of
- * applicaton.
+ * application.
  */
 int xmlLineNumbersDefaultValue = 0;
 static int xmlLineNumbersDefaultValueThrDef = 0;
 /**
  * xmlKeepBlanksDefaultValue:
+ *
+ * DEPRECATED: Use the modern options API with XML_PARSE_NOBLANKS.
  *
  * Global setting, indicate that the parser should keep all blanks
  * nodes found in the content
@@ -264,6 +291,8 @@ static int xmlKeepBlanksDefaultValueThrDef = 1;
 /**
  * xmlSubstituteEntitiesDefaultValue:
  *
+ * DEPRECATED: Use the modern options API with XML_PARSE_NOENT.
+ *
  * Global setting, indicate that the parser should not generate entity
  * references but replace them with the actual content of the entity
  * Disabled by default, this should be activated when using XPath since
@@ -273,26 +302,38 @@ static int xmlKeepBlanksDefaultValueThrDef = 1;
 int xmlSubstituteEntitiesDefaultValue = 0;
 static int xmlSubstituteEntitiesDefaultValueThrDef = 0;
 
+/**
+ * xmlRegisterNodeDefaultValue:
+ *
+ * DEPRECATED: Don't use
+ */
 xmlRegisterNodeFunc xmlRegisterNodeDefaultValue = NULL;
 static xmlRegisterNodeFunc xmlRegisterNodeDefaultValueThrDef = NULL;
+
+/**
+ * xmlDeregisterNodeDefaultValue:
+ *
+ * DEPRECATED: Don't use
+ */
 xmlDeregisterNodeFunc xmlDeregisterNodeDefaultValue = NULL;
 static xmlDeregisterNodeFunc xmlDeregisterNodeDefaultValueThrDef = NULL;
 
+/**
+ * xmlParserInputBufferCreateFilenameValue:
+ *
+ * DEPRECATED: Don't use
+ */
 xmlParserInputBufferCreateFilenameFunc xmlParserInputBufferCreateFilenameValue = NULL;
 static xmlParserInputBufferCreateFilenameFunc xmlParserInputBufferCreateFilenameValueThrDef = NULL;
 
+/**
+ * xmlOutputBufferCreateFilenameValue:
+ *
+ * DEPRECATED: Don't use
+ */
 xmlOutputBufferCreateFilenameFunc xmlOutputBufferCreateFilenameValue = NULL;
 static xmlOutputBufferCreateFilenameFunc xmlOutputBufferCreateFilenameValueThrDef = NULL;
 
-/*
- * Error handling
- */
-
-/* xmlGenericErrorFunc xmlGenericError = xmlGenericErrorDefaultFunc; */
-/* Must initialize xmlGenericError in xmlInitParser */
-void XMLCDECL xmlGenericErrorDefaultFunc	(void *ctx ATTRIBUTE_UNUSED,
-				 const char *msg,
-				 ...);
 /**
  * xmlGenericError:
  *
@@ -314,6 +355,13 @@ static xmlStructuredErrorFunc xmlStructuredErrorThrDef = NULL;
  */
 void *xmlGenericErrorContext = NULL;
 static void *xmlGenericErrorContextThrDef = NULL;
+/**
+ * xmlStructuredErrorContext:
+ *
+ * Global setting passed to structured error callbacks
+ */
+void *xmlStructuredErrorContext = NULL;
+static void *xmlStructuredErrorContextThrDef = NULL;
 xmlError xmlLastError;
 
 /*
@@ -340,7 +388,7 @@ static const char *xmlTreeIndentStringThrDef = "  ";
  * xmlSaveNoEmptyTags:
  *
  * Global setting, asking the serializer to not output empty tags
- * as <empty/> but <empty></empty>. those two forms are undistinguishable
+ * as <empty/> but <empty></empty>. those two forms are indistinguishable
  * once parsed.
  * Disabled by default
  */
@@ -350,6 +398,9 @@ static int xmlSaveNoEmptyTagsThrDef = 0;
 #ifdef LIBXML_SAX1_ENABLED
 /**
  * xmlDefaultSAXHandler:
+ *
+ * DEPRECATED: This handler is unused and will be removed from future
+ * versions.
  *
  * Default SAX version1 handler for XML, builds the DOM tree
  */
@@ -381,12 +432,14 @@ xmlSAXHandlerV1 xmlDefaultSAXHandler = {
     xmlSAX2GetParameterEntity,
     xmlSAX2CDataBlock,
     xmlSAX2ExternalSubset,
-    0,
+    1,
 };
 #endif /* LIBXML_SAX1_ENABLED */
 
 /**
  * xmlDefaultSAXLocator:
+ *
+ * DEPRECATED: Don't use
  *
  * The default SAX Locator
  * { getPublicId, getSystemId, getLineNumber, getColumnNumber}
@@ -398,9 +451,12 @@ xmlSAXLocator xmlDefaultSAXLocator = {
     xmlSAX2GetColumnNumber
 };
 
-#ifdef LIBXML_HTML_ENABLED
+#if defined(LIBXML_HTML_ENABLED) && defined(LIBXML_SAX1_ENABLED)
 /**
  * htmlDefaultSAXHandler:
+ *
+ * DEPRECATED: This handler is unused and will be removed from future
+ * versions.
  *
  * Default old SAX v1 handler for HTML, builds the DOM tree
  */
@@ -429,50 +485,12 @@ xmlSAXHandlerV1 htmlDefaultSAXHandler = {
     xmlParserWarning,
     xmlParserError,
     xmlParserError,
-    xmlSAX2GetParameterEntity,
+    NULL,
     xmlSAX2CDataBlock,
     NULL,
-    0,
+    1,
 };
 #endif /* LIBXML_HTML_ENABLED */
-
-#ifdef LIBXML_DOCB_ENABLED
-/**
- * docbDefaultSAXHandler:
- *
- * Default old SAX v1 handler for SGML DocBook, builds the DOM tree
- */
-xmlSAXHandlerV1 docbDefaultSAXHandler = {
-    xmlSAX2InternalSubset,
-    xmlSAX2IsStandalone,
-    xmlSAX2HasInternalSubset,
-    xmlSAX2HasExternalSubset,
-    xmlSAX2ResolveEntity,
-    xmlSAX2GetEntity,
-    xmlSAX2EntityDecl,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    xmlSAX2SetDocumentLocator,
-    xmlSAX2StartDocument,
-    xmlSAX2EndDocument,
-    xmlSAX2StartElement,
-    xmlSAX2EndElement,
-    xmlSAX2Reference,
-    xmlSAX2Characters,
-    xmlSAX2IgnorableWhitespace,
-    NULL,
-    xmlSAX2Comment,
-    xmlParserWarning,
-    xmlParserError,
-    xmlParserError,
-    xmlSAX2GetParameterEntity,
-    NULL,
-    NULL,
-    0,
-};
-#endif /* LIBXML_DOCB_ENABLED */
 
 /**
  * xmlInitializeGlobalState:
@@ -485,22 +503,13 @@ void
 xmlInitializeGlobalState(xmlGlobalStatePtr gs)
 {
 #ifdef DEBUG_GLOBALS
-    fprintf(stderr, "Initializing globals at %lu for thread %d\n",
-	    (unsigned long) gs, xmlGetThreadId());
+    fprintf(stderr, "Initializing globals at %p for thread %d\n",
+	    (void *) gs, xmlGetThreadId());
 #endif
 
-    /*
-     * Perform initialization as required by libxml
-     */
-    if (xmlThrDefMutex == NULL)
-        xmlInitGlobals();
+    xmlMutexLock(&xmlThrDefMutex);
 
-    xmlMutexLock(xmlThrDefMutex);
-
-#if defined(LIBXML_DOCB_ENABLED) && defined(LIBXML_LEGACY_ENABLED) && defined(LIBXML_SAX1_ENABLED)
-    initdocbDefaultSAXHandler(&gs->docbDefaultSAXHandler);
-#endif
-#if defined(LIBXML_HTML_ENABLED) && defined(LIBXML_LEGACY_ENABLED)
+#if defined(LIBXML_HTML_ENABLED) && defined(LIBXML_LEGACY_ENABLED) && defined(LIBXML_SAX1_ENABLED)
     inithtmlDefaultSAXHandler(&gs->htmlDefaultSAXHandler);
 #endif
 
@@ -514,7 +523,7 @@ xmlInitializeGlobalState(xmlGlobalStatePtr gs)
     gs->xmlDefaultSAXLocator.getSystemId = xmlSAX2GetSystemId;
     gs->xmlDefaultSAXLocator.getLineNumber = xmlSAX2GetLineNumber;
     gs->xmlDefaultSAXLocator.getColumnNumber = xmlSAX2GetColumnNumber;
-    gs->xmlDoValidityCheckingDefaultValue = 
+    gs->xmlDoValidityCheckingDefaultValue =
          xmlDoValidityCheckingDefaultValueThrDef;
 #if defined(DEBUG_MEMORY_LOCATION) | defined(DEBUG_MEMORY)
     gs->xmlFree = (xmlFreeFunc) xmlMemFree;
@@ -539,12 +548,13 @@ xmlInitializeGlobalState(xmlGlobalStatePtr gs)
     gs->xmlParserVersion = LIBXML_VERSION_STRING;
     gs->xmlPedanticParserDefaultValue = xmlPedanticParserDefaultValueThrDef;
     gs->xmlSaveNoEmptyTags = xmlSaveNoEmptyTagsThrDef;
-    gs->xmlSubstituteEntitiesDefaultValue = 
+    gs->xmlSubstituteEntitiesDefaultValue =
         xmlSubstituteEntitiesDefaultValueThrDef;
 
     gs->xmlGenericError = xmlGenericErrorThrDef;
     gs->xmlStructuredError = xmlStructuredErrorThrDef;
     gs->xmlGenericErrorContext = xmlGenericErrorContextThrDef;
+    gs->xmlStructuredErrorContext = xmlStructuredErrorContextThrDef;
     gs->xmlRegisterNodeDefaultValue = xmlRegisterNodeDefaultValueThrDef;
     gs->xmlDeregisterNodeDefaultValue = xmlDeregisterNodeDefaultValueThrDef;
 
@@ -552,30 +562,49 @@ xmlInitializeGlobalState(xmlGlobalStatePtr gs)
 	gs->xmlOutputBufferCreateFilenameValue = xmlOutputBufferCreateFilenameValueThrDef;
     memset(&gs->xmlLastError, 0, sizeof(xmlError));
 
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 }
 
 /**
- * DOC_DISABLE : we ignore missing doc for the xmlThrDef functions,
- *               those are really internal work
+ * xmlCleanupGlobals:
+ *
+ * DEPRECATED: This function is a no-op. Call xmlCleanupParser
+ * to free global state but see the warnings there. xmlCleanupParser
+ * should be only called once at program exit. In most cases, you don't
+ * have call cleanup functions at all.
  */
+void xmlCleanupGlobals(void) {
+}
+
+/**
+ * xmlCleanupGlobalsInternal:
+ *
+ * Additional cleanup for multi-threading
+ */
+void xmlCleanupGlobalsInternal(void) {
+    xmlResetError(&xmlLastError);
+
+    xmlCleanupMutex(&xmlThrDefMutex);
+    __xmlGlobalInitMutexDestroy();
+}
+
 void
 xmlThrDefSetGenericErrorFunc(void *ctx, xmlGenericErrorFunc handler) {
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     xmlGenericErrorContextThrDef = ctx;
     if (handler != NULL)
 	xmlGenericErrorThrDef = handler;
     else
 	xmlGenericErrorThrDef = xmlGenericErrorDefaultFunc;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 }
 
 void
 xmlThrDefSetStructuredErrorFunc(void *ctx, xmlStructuredErrorFunc handler) {
-    xmlMutexLock(xmlThrDefMutex);
-    xmlGenericErrorContextThrDef = ctx;
+    xmlMutexLock(&xmlThrDefMutex);
+    xmlStructuredErrorContextThrDef = ctx;
     xmlStructuredErrorThrDef = handler;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 }
 
 /**
@@ -590,7 +619,7 @@ xmlRegisterNodeFunc
 xmlRegisterNodeDefault(xmlRegisterNodeFunc func)
 {
     xmlRegisterNodeFunc old = xmlRegisterNodeDefaultValue;
-    
+
     __xmlRegisterCallbacks = 1;
     xmlRegisterNodeDefaultValue = func;
     return(old);
@@ -600,13 +629,13 @@ xmlRegisterNodeFunc
 xmlThrDefRegisterNodeDefault(xmlRegisterNodeFunc func)
 {
     xmlRegisterNodeFunc old;
-    
-    xmlMutexLock(xmlThrDefMutex);
+
+    xmlMutexLock(&xmlThrDefMutex);
     old = xmlRegisterNodeDefaultValueThrDef;
-    
+
     __xmlRegisterCallbacks = 1;
     xmlRegisterNodeDefaultValueThrDef = func;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 
     return(old);
 }
@@ -623,7 +652,7 @@ xmlDeregisterNodeFunc
 xmlDeregisterNodeDefault(xmlDeregisterNodeFunc func)
 {
     xmlDeregisterNodeFunc old = xmlDeregisterNodeDefaultValue;
-    
+
     __xmlRegisterCallbacks = 1;
     xmlDeregisterNodeDefaultValue = func;
     return(old);
@@ -634,12 +663,12 @@ xmlThrDefDeregisterNodeDefault(xmlDeregisterNodeFunc func)
 {
     xmlDeregisterNodeFunc old;
 
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     old = xmlDeregisterNodeDefaultValueThrDef;
-    
+
     __xmlRegisterCallbacks = 1;
     xmlDeregisterNodeDefaultValueThrDef = func;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 
     return(old);
 }
@@ -648,15 +677,15 @@ xmlParserInputBufferCreateFilenameFunc
 xmlThrDefParserInputBufferCreateFilenameDefault(xmlParserInputBufferCreateFilenameFunc func)
 {
     xmlParserInputBufferCreateFilenameFunc old;
-    
-    xmlMutexLock(xmlThrDefMutex);
+
+    xmlMutexLock(&xmlThrDefMutex);
     old = xmlParserInputBufferCreateFilenameValueThrDef;
     if (old == NULL) {
 		old = __xmlParserInputBufferCreateFilename;
 	}
 
     xmlParserInputBufferCreateFilenameValueThrDef = func;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 
     return(old);
 }
@@ -665,8 +694,8 @@ xmlOutputBufferCreateFilenameFunc
 xmlThrDefOutputBufferCreateFilenameDefault(xmlOutputBufferCreateFilenameFunc func)
 {
     xmlOutputBufferCreateFilenameFunc old;
-    
-    xmlMutexLock(xmlThrDefMutex);
+
+    xmlMutexLock(&xmlThrDefMutex);
     old = xmlOutputBufferCreateFilenameValueThrDef;
 #ifdef LIBXML_OUTPUT_ENABLED
     if (old == NULL) {
@@ -674,23 +703,12 @@ xmlThrDefOutputBufferCreateFilenameDefault(xmlOutputBufferCreateFilenameFunc fun
 	}
 #endif
     xmlOutputBufferCreateFilenameValueThrDef = func;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
 
     return(old);
 }
 
-#ifdef LIBXML_DOCB_ENABLED
-#undef	docbDefaultSAXHandler
-xmlSAXHandlerV1 *
-__docbDefaultSAXHandler(void) {
-    if (IS_MAIN_THREAD)
-	return (&docbDefaultSAXHandler);
-    else
-	return (&xmlGetGlobalState()->docbDefaultSAXHandler);
-}
-#endif
-
-#ifdef LIBXML_HTML_ENABLED
+#if defined(LIBXML_HTML_ENABLED) && defined(LIBXML_SAX1_ENABLED)
 #undef	htmlDefaultSAXHandler
 xmlSAXHandlerV1 *
 __htmlDefaultSAXHandler(void) {
@@ -722,7 +740,7 @@ __xmlMalloc(void){
     if (IS_MAIN_THREAD)
         return (&xmlMalloc);
     else
-    	return (&xmlGetGlobalState()->xmlMalloc);
+	return (&xmlGetGlobalState()->xmlMalloc);
 }
 
 #undef xmlMallocAtomic
@@ -788,10 +806,10 @@ __xmlBufferAllocScheme(void) {
 }
 xmlBufferAllocationScheme xmlThrDefBufferAllocScheme(xmlBufferAllocationScheme v) {
     xmlBufferAllocationScheme ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlBufferAllocSchemeThrDef;
     xmlBufferAllocSchemeThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -805,10 +823,10 @@ __xmlDefaultBufferSize(void) {
 }
 int xmlThrDefDefaultBufferSize(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlDefaultBufferSizeThrDef;
     xmlDefaultBufferSizeThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -842,10 +860,10 @@ __xmlDoValidityCheckingDefaultValue(void) {
 }
 int xmlThrDefDoValidityCheckingDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlDoValidityCheckingDefaultValueThrDef;
     xmlDoValidityCheckingDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -876,6 +894,15 @@ __xmlGenericErrorContext(void) {
 	return (&xmlGetGlobalState()->xmlGenericErrorContext);
 }
 
+#undef	xmlStructuredErrorContext
+void * *
+__xmlStructuredErrorContext(void) {
+    if (IS_MAIN_THREAD)
+	return (&xmlStructuredErrorContext);
+    else
+	return (&xmlGetGlobalState()->xmlStructuredErrorContext);
+}
+
 #undef	xmlGetWarningsDefaultValue
 int *
 __xmlGetWarningsDefaultValue(void) {
@@ -886,10 +913,10 @@ __xmlGetWarningsDefaultValue(void) {
 }
 int xmlThrDefGetWarningsDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlGetWarningsDefaultValueThrDef;
     xmlGetWarningsDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -903,14 +930,14 @@ __xmlIndentTreeOutput(void) {
 }
 int xmlThrDefIndentTreeOutput(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlIndentTreeOutputThrDef;
     xmlIndentTreeOutputThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
-#undef xmlTreeIndentString
+#undef	xmlTreeIndentString
 const char * *
 __xmlTreeIndentString(void) {
     if (IS_MAIN_THREAD)
@@ -920,10 +947,10 @@ __xmlTreeIndentString(void) {
 }
 const char * xmlThrDefTreeIndentString(const char * v) {
     const char * ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlTreeIndentStringThrDef;
     xmlTreeIndentStringThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -937,10 +964,10 @@ __xmlKeepBlanksDefaultValue(void) {
 }
 int xmlThrDefKeepBlanksDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlKeepBlanksDefaultValueThrDef;
     xmlKeepBlanksDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -954,10 +981,10 @@ __xmlLineNumbersDefaultValue(void) {
 }
 int xmlThrDefLineNumbersDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlLineNumbersDefaultValueThrDef;
     xmlLineNumbersDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -971,10 +998,10 @@ __xmlLoadExtDtdDefaultValue(void) {
 }
 int xmlThrDefLoadExtDtdDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlLoadExtDtdDefaultValueThrDef;
     xmlLoadExtDtdDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -988,10 +1015,10 @@ __xmlParserDebugEntities(void) {
 }
 int xmlThrDefParserDebugEntities(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlParserDebugEntitiesThrDef;
     xmlParserDebugEntitiesThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -1014,10 +1041,10 @@ __xmlPedanticParserDefaultValue(void) {
 }
 int xmlThrDefPedanticParserDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlPedanticParserDefaultValueThrDef;
     xmlPedanticParserDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -1031,10 +1058,10 @@ __xmlSaveNoEmptyTags(void) {
 }
 int xmlThrDefSaveNoEmptyTags(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlSaveNoEmptyTagsThrDef;
     xmlSaveNoEmptyTagsThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -1048,10 +1075,10 @@ __xmlSubstituteEntitiesDefaultValue(void) {
 }
 int xmlThrDefSubstituteEntitiesDefaultValue(int v) {
     int ret;
-    xmlMutexLock(xmlThrDefMutex);
+    xmlMutexLock(&xmlThrDefMutex);
     ret = xmlSubstituteEntitiesDefaultValueThrDef;
     xmlSubstituteEntitiesDefaultValueThrDef = v;
-    xmlMutexUnlock(xmlThrDefMutex);
+    xmlMutexUnlock(&xmlThrDefMutex);
     return ret;
 }
 
@@ -1091,5 +1118,3 @@ __xmlOutputBufferCreateFilenameValue(void) {
 	return (&xmlGetGlobalState()->xmlOutputBufferCreateFilenameValue);
 }
 
-#define bottom_globals
-#include "elfgcchack.h"

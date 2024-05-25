@@ -1,11 +1,10 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
 
-srcdir=`dirname $0`
-test -z "$srcdir" && srcdir=. 
-
 THEDIR=`pwd`
-cd $srcdir
+cd `dirname $0`
+srcdir=`pwd`
+
 DIE=0
 
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
@@ -16,7 +15,8 @@ DIE=0
 	DIE=1
 }
 
-(which libtool) < /dev/null > /dev/null 2>&1 || {
+(libtoolize --version) < /dev/null > /dev/null 2>&1 ||
+(glibtoolize --version) < /dev/null > /dev/null 2>&1 || {
 	echo
 	echo "You must have libtool installed to compile libxml."
 	echo "Download the appropriate package for your distribution,"
@@ -41,15 +41,40 @@ test -f entities.c || {
 	exit 1
 }
 
-if test -z "$*"; then
-	echo "I am going to run ./configure with no arguments - if you wish "
+EXTRA_ARGS=
+if test "x$1" = "x--system"; then
+    shift
+    prefix=/usr
+    libdir=$prefix/lib
+    sysconfdir=/etc
+    localstatedir=/var
+    if [ -d /usr/lib64 ]; then
+      libdir=$prefix/lib64
+    fi
+    EXTRA_ARGS="--prefix=$prefix --sysconfdir=$sysconfdir --localstatedir=$localstatedir --libdir=$libdir"
+    echo "Running ./configure with $EXTRA_ARGS $@"
+else
+    if test -z "$NOCONFIGURE" && test -z "$*"; then
+        echo "I am going to run ./configure with no arguments - if you wish "
         echo "to pass any to it, please specify them on the $0 command line."
+    fi
 fi
 
-libtoolize --copy --force
-aclocal $ACLOCAL_FLAGS
-automake --add-missing
-autoconf
+if [ ! -d $srcdir/m4 ]; then
+        mkdir $srcdir/m4
+fi
+
+# Replaced by autoreconf below
+autoreconf -if -Wall
+
+if ! grep -q pkg.m4 aclocal.m4; then
+    cat <<EOF
+
+Couldn't find pkg.m4 from pkg-config. Install the appropriate package for
+your distribution or set ACLOCAL_PATH to the directory containing pkg.m4.
+EOF
+    exit 1
+fi
 
 cd $THEDIR
 
@@ -58,7 +83,13 @@ if test x$OBJ_DIR != x; then
     cd "$OBJ_DIR"
 fi
 
-sh $srcdir/configure "$@"
-
-echo 
-echo "Now type 'make' to compile libxml."
+if test -z "$NOCONFIGURE"; then
+    $srcdir/configure $EXTRA_ARGS "$@"
+    if test "$?" -ne 0; then
+        echo
+        echo "Configure script failed, check config.log for more info."
+    else
+        echo
+        echo "Now type 'make' to compile libxml2."
+    fi
+fi

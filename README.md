@@ -37,6 +37,7 @@ same run-time library option.
 
 ### External Libraries
 
-* `Externals/LibXML` - [libxml2](https://gitlab.gnome.org/GNOME/libxml2) version 2.6.32 (2008).
+* `Externals/LibXML` - [libxml2](https://gitlab.gnome.org/GNOME/libxml2) version 2.11.8 (2024 May).
+  * Only the files in root folder, plus `include` and `win32` subfolders. Everything else is not needed.
 * `Externals/MathMLSolver` - origin unknown, Copyright (c) 2007 netAllied GmbH, feels like it is not really "external".
 * `Externals/UTF` - origin unknown, Copyright 2001-2004 Unicode, Inc, from around 2004.

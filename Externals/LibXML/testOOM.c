@@ -10,19 +10,7 @@
 
 #include <string.h>
 #include <stdarg.h>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
 
 #include <libxml/xmlreader.h>
 
@@ -69,7 +57,7 @@ const char *elementNames[] = {
     "XML_READER_TYPE_END_ENTITY",
     "XML_READER_TYPE_XML_DECLARATION"};
 
-/* not using xmlBuff here because I don't want those 
+/* not using xmlBuff here because I don't want those
  * mallocs to interfere */
 struct buffer {
     char *str;
@@ -205,7 +193,7 @@ static int processNode (xmlTextReaderPtr reader, void *data)
 		buffer_add_char (buff, '=');
 		s = (const char *)xmlTextReaderConstValue (reader);
 		if (s == NULL) return FALSE;
-		buffer_add_string (buff, s);		
+		buffer_add_string (buff, s);
 	    }
 	    if (ret == -1) return FALSE;
 	}
@@ -271,7 +259,7 @@ check_load_file_memory_func (void *data)
        if (xmlTextReaderSetParserProp(reader, XML_PARSER_VALIDATE, 1) == -1)
 	 goto out;
      }
-          
+
      /*
       * Process all nodes in sequence
       */
@@ -297,7 +285,7 @@ check_load_file_memory_func (void *data)
 	     buffer_dump (b, ".OOM.buff");
 	 }
      }
-     
+
      if (count)
        {
 	   fprintf (stdout, "# %s: %u elems, %u attrs, %u chars %s\n",
@@ -323,7 +311,7 @@ int main(int argc, char **argv) {
 	usage(argv[0]);
 	return(1);
     }
-    LIBXML_TEST_VERSION;      
+    LIBXML_TEST_VERSION;
 
     xmlMemSetup (test_free,
                  test_malloc,
@@ -367,7 +355,7 @@ int main(int argc, char **argv) {
 		  xmlMemoryDump();
                   return 1;
              }
-             
+
 	    files ++;
 	}
     }

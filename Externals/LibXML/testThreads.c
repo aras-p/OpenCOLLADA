@@ -3,42 +3,44 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#if defined(LIBXML_THREAD_ENABLED) && defined(LIBXML_CATALOG_ENABLED) && defined(LIBXML_SAX1_ENABLED)
+#if defined(LIBXML_THREAD_ENABLED) && defined(LIBXML_CATALOG_ENABLED)
 #include <libxml/globals.h>
 #include <libxml/threads.h>
 #include <libxml/parser.h>
 #include <libxml/catalog.h>
 #ifdef HAVE_PTHREAD_H
 #include <pthread.h>
-#elif defined HAVE_BEOS_THREADS
-#include <OS.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #endif
 #include <string.h>
-#if !defined(_MSC_VER)
-#include <unistd.h>
-#endif
 #include <assert.h>
 
 #define	MAX_ARGC	20
+#define TEST_REPEAT_COUNT 500
 #ifdef HAVE_PTHREAD_H
 static pthread_t tid[MAX_ARGC];
-#elif defined HAVE_BEOS_THREADS
-static thread_id tid[MAX_ARGC];
+#elif defined(_WIN32)
+static HANDLE tid[MAX_ARGC];
 #endif
 
-static const char *catalog = "test/threads/complex.xml";
-static const char *testfiles[] = {
-    "test/threads/abc.xml",
-    "test/threads/acb.xml",
-    "test/threads/bac.xml",
-    "test/threads/bca.xml",
-    "test/threads/cab.xml",
-    "test/threads/cba.xml",
-    "test/threads/invalid.xml",
-};
+typedef struct {
+    const char *filename;
+    int okay;
+} xmlThreadParams;
 
-static const char *Okay = "OK";
-static const char *Failed = "Failed";
+static const char *catalog = "test/threads/complex.xml";
+static xmlThreadParams threadParams[] = {
+    { "test/threads/abc.xml", 0 },
+    { "test/threads/acb.xml", 0 },
+    { "test/threads/bac.xml", 0 },
+    { "test/threads/bca.xml", 0 },
+    { "test/threads/cab.xml", 0 },
+    { "test/threads/cba.xml", 0 },
+    { "test/threads/invalid.xml", 0 }
+};
+static const unsigned int num_threads = sizeof(threadParams) /
+                                        sizeof(threadParams[0]);
 
 #ifndef xmlDoValidityCheckingDefaultValue
 #error xmlDoValidityCheckingDefaultValue is not a macro
@@ -51,7 +53,8 @@ static void *
 thread_specific_data(void *private_data)
 {
     xmlDocPtr myDoc;
-    const char *filename = (const char *) private_data;
+    xmlThreadParams *params = (xmlThreadParams *) private_data;
+    const char *filename = params->filename;
     int okay = 1;
 
     if (!strcmp(filename, "test/threads/invalid.xml")) {
@@ -61,7 +64,11 @@ thread_specific_data(void *private_data)
         xmlDoValidityCheckingDefaultValue = 1;
         xmlGenericErrorContext = stderr;
     }
+#ifdef LIBXML_SAX1_ENABLED
     myDoc = xmlParseFile(filename);
+#else
+    myDoc = xmlReadFile(filename, NULL, XML_WITH_CATALOG);
+#endif
     if (myDoc) {
         xmlFreeDoc(myDoc);
     } else {
@@ -87,9 +94,8 @@ thread_specific_data(void *private_data)
 	    okay = 0;
 	}
     }
-    if (okay == 0)
-	return((void *) Failed);
-    return ((void *) Okay);
+    params->okay = okay;
+    return(NULL);
 }
 
 #ifdef HAVE_PTHREAD_H
@@ -97,29 +103,25 @@ int
 main(void)
 {
     unsigned int i, repeat;
-    unsigned int num_threads = sizeof(testfiles) / sizeof(testfiles[0]);
-    void *results[MAX_ARGC];
     int ret;
 
     xmlInitParser();
-    for (repeat = 0;repeat < 500;repeat++) {
+    for (repeat = 0;repeat < TEST_REPEAT_COUNT;repeat++) {
 	xmlLoadCatalog(catalog);
 
-	for (i = 0; i < num_threads; i++) {
-	    results[i] = NULL;
-	    tid[i] = (pthread_t) -1;
-	}
+        memset(tid, 0xff, sizeof(*tid)*num_threads);
 
 	for (i = 0; i < num_threads; i++) {
 	    ret = pthread_create(&tid[i], NULL, thread_specific_data,
-				 (void *) testfiles[i]);
+				 (void *) &threadParams[i]);
 	    if (ret != 0) {
 		perror("pthread_create");
 		exit(1);
 	    }
 	}
 	for (i = 0; i < num_threads; i++) {
-	    ret = pthread_join(tid[i], &results[i]);
+            void *result;
+	    ret = pthread_join(tid[i], &result);
 	    if (ret != 0) {
 		perror("pthread_join");
 		exit(1);
@@ -128,69 +130,79 @@ main(void)
 
 	xmlCatalogCleanup();
 	for (i = 0; i < num_threads; i++)
-	    if (results[i] != (void *) Okay)
-		printf("Thread %d handling %s failed\n", i, testfiles[i]);
+	    if (threadParams[i].okay == 0)
+		printf("Thread %d handling %s failed\n", i,
+                       threadParams[i].filename);
     }
     xmlCleanupParser();
     xmlMemoryDump();
     return (0);
 }
-#elif defined HAVE_BEOS_THREADS
+#elif defined(_WIN32)
+static DWORD WINAPI
+win32_thread_specific_data(void *private_data)
+{
+    thread_specific_data(private_data);
+    return(0);
+}
+
 int
 main(void)
 {
     unsigned int i, repeat;
-    unsigned int num_threads = sizeof(testfiles) / sizeof(testfiles[0]);
-    void *results[MAX_ARGC];
-    status_t ret;
+    BOOL ret;
 
     xmlInitParser();
-    printf("Parser initialized\n");
-    for (repeat = 0;repeat < 500;repeat++) {
-    printf("repeat: %d\n",repeat);
-	xmlLoadCatalog(catalog);
-	printf("loaded catalog: %s\n", catalog);
-	for (i = 0; i < num_threads; i++) {
-	    results[i] = NULL;
-	    tid[i] = (thread_id) -1;
-	}
-	printf("cleaned threads\n");
-	for (i = 0; i < num_threads; i++) {
-		tid[i] = spawn_thread(thread_specific_data, "xmlTestThread", B_NORMAL_PRIORITY, (void *) testfiles[i]);
-		if (tid[i] < B_OK) {
-			perror("beos_thread_create");
-			exit(1);
-		}
-		printf("beos_thread_create %d -> %d\n", i, tid[i]);
-	}
-	for (i = 0; i < num_threads; i++) {
-	    ret = wait_for_thread(tid[i], &results[i]);
-	    printf("beos_thread_wait %d -> %d\n", i, ret);
-	    if (ret != B_OK) {
-			perror("beos_thread_wait");
-			exit(1);
-	    }
-	}
+    for (repeat = 0;repeat < TEST_REPEAT_COUNT;repeat++)
+    {
+        xmlLoadCatalog(catalog);
 
-	xmlCatalogCleanup();
-	ret = B_OK;
-	for (i = 0; i < num_threads; i++)
-	    if (results[i] != (void *) Okay) {
-			printf("Thread %d handling %s failed\n", i, testfiles[i]);
-			ret = B_ERROR;
-		}
+        for (i = 0; i < num_threads; i++)
+        {
+            tid[i] = (HANDLE) -1;
+        }
+
+        for (i = 0; i < num_threads; i++)
+        {
+            DWORD useless;
+            tid[i] = CreateThread(NULL, 0,
+                win32_thread_specific_data, &threadParams[i], 0, &useless);
+            if (tid[i] == NULL)
+            {
+                perror("CreateThread");
+                exit(1);
+            }
+        }
+
+        if (WaitForMultipleObjects (num_threads, tid, TRUE, INFINITE) == WAIT_FAILED)
+            perror ("WaitForMultipleObjects failed");
+
+        for (i = 0; i < num_threads; i++)
+        {
+            DWORD exitCode;
+            ret = GetExitCodeThread (tid[i], &exitCode);
+            if (ret == 0)
+            {
+                perror("GetExitCodeThread");
+                exit(1);
+            }
+            CloseHandle (tid[i]);
+        }
+
+        xmlCatalogCleanup();
+        for (i = 0; i < num_threads; i++) {
+            if (threadParams[i].okay == 0)
+            printf("Thread %d handling %s failed\n", i,
+                   threadParams[i].filename);
+        }
     }
+
     xmlCleanupParser();
     xmlMemoryDump();
 
-	if (ret == B_OK)
-		printf("testThread : BeOS : SUCCESS!\n");
-	else
-		printf("testThread : BeOS : FAILED!\n");
-
     return (0);
 }
-#endif /* pthreads or BeOS threads */
+#endif /* pthreads */
 
 #else /* !LIBXML_THREADS_ENABLED */
 int

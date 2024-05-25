@@ -8,6 +8,11 @@
  * http://www.fortran-2000.com/ArnaudRecipes/sharedlib.html
  */
 
+/* In order RTLD_GLOBAL and RTLD_NOW to be defined on zOS */
+#if defined(__MVS__)
+#define _UNIX03_SOURCE
+#endif
+
 #define IN_LIBXML
 #include "libxml.h"
 
@@ -16,6 +21,8 @@
 #include <libxml/xmlerror.h>
 #include <libxml/xmlmodule.h>
 #include <libxml/globals.h>
+
+#include "private/error.h"
 
 #ifdef LIBXML_MODULES_ENABLED
 
@@ -30,7 +37,7 @@ static int xmlModulePlatformSymbol(void *handle, const char *name, void **result
 
 /************************************************************************
  *									*
- * 		module memory error handler				*
+ *		module memory error handler				*
  *									*
  ************************************************************************/
 
@@ -61,6 +68,10 @@ xmlModuleErrMemory(xmlModulePtr module, const char *extra)
  * @options: a set of xmlModuleOption
  *
  * Opens a module/shared library given its name or path
+ * NOTE: that due to portability issues, behaviour can only be
+ * guaranteed with @name using ASCII. We cannot guarantee that
+ * an UTF-8 string would work, which is why name is a const char *
+ * and not a const xmlChar * .
  * TODO: options are not yet implemented.
  *
  * Returns a handle for the module or NULL in case of error
@@ -99,6 +110,10 @@ xmlModuleOpen(const char *name, int options ATTRIBUTE_UNUSED)
  * @symbol: the resulting symbol address
  *
  * Lookup for a symbol address in the given module
+ * NOTE: that due to portability issues, behaviour can only be
+ * guaranteed with @name using ASCII. We cannot guarantee that
+ * an UTF-8 string would work, which is why name is a const char *
+ * and not a const xmlChar * .
  *
  * Returns 0 if the symbol was found, or -1 in case of error
  */
@@ -106,8 +121,8 @@ int
 xmlModuleSymbol(xmlModulePtr module, const char *name, void **symbol)
 {
     int rc = -1;
-	
-    if ((NULL == module) || (symbol == NULL)) {
+
+    if ((NULL == module) || (symbol == NULL) || (name == NULL)) {
         __xmlRaiseError(NULL, NULL, NULL, NULL, NULL, XML_FROM_MODULE,
                         XML_MODULE_OPEN, XML_ERR_FATAL, NULL, 0, 0,
                         NULL, NULL, 0, 0, "null parameter\n");
@@ -288,8 +303,9 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 #endif /* HAVE_SHLLOAD */
 #endif /* ! HAVE_DLOPEN */
 
-#ifdef _WIN32
+#if defined(_WIN32)
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 /*
@@ -300,7 +316,7 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 static void *
 xmlModulePlatformOpen(const char *name)
 {
-    return LoadLibrary(name);
+    return LoadLibraryA(name);
 }
 
 /*
@@ -326,120 +342,12 @@ xmlModulePlatformClose(void *handle)
 static int
 xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 {
+XML_IGNORE_FPTR_CAST_WARNINGS
     *symbol = GetProcAddress(handle, name);
     return (NULL == *symbol) ? -1 : 0;
+XML_POP_WARNINGS
 }
 
 #endif /* _WIN32 */
 
-#ifdef HAVE_BEOS
-
-#include <kernel/image.h>
-
-/*
- * xmlModulePlatformOpen:
- * beos api info: http://www.beunited.org/bebook/The%20Kernel%20Kit/Images.html
- * returns a handle on success, and zero on error.
- */
-
-static void *
-xmlModulePlatformOpen(const char *name)
-{
-    return (void *) load_add_on(name);
-}
-
-/*
- * xmlModulePlatformClose:
- * beos api info: http://www.beunited.org/bebook/The%20Kernel%20Kit/Images.html
- * returns 0 on success, and non-zero on error.
- */
-
-static int
-xmlModulePlatformClose(void *handle)
-{
-    status_t rc;
-
-    rc = unload_add_on((image_id) handle);
-
-    if (rc == B_OK)
-        return 0;
-    else
-        return -1;
-}
-
-/*
- * xmlModulePlatformSymbol:
- * beos api info: http://www.beunited.org/bebook/The%20Kernel%20Kit/Images.html
- * returns 0 on success and the loaded symbol in result, and -1 on error.
- */
-
-static int
-xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
-{
-    status_t rc;
-
-    rc = get_image_symbol((image_id) handle, name, B_SYMBOL_TYPE_ANY, symbol);
-
-    return (rc == B_OK) ? 0 : -1;
-}
-
-#endif /* HAVE_BEOS */
-
-#ifdef HAVE_OS2
-
-#include <os2.h>
-
-/*
- * xmlModulePlatformOpen:
- * os2 api info: http://www.edm2.com/os2api/Dos/DosLoadModule.html
- * returns a handle on success, and zero on error.
- */
-
-static void *
-xmlModulePlatformOpen(const char *name)
-{
-    char errbuf[256];
-    void *handle;
-    int rc;
-
-    rc = DosLoadModule(errbuf, sizeof(errbuf) - 1, name, &handle);
-
-    if (rc)
-        return 0;
-    else
-        return (handle);
-}
-
-/*
- * xmlModulePlatformClose:
- * os2 api info: http://www.edm2.com/os2api/Dos/DosFreeModule.html
- * returns 0 on success, and non-zero on error.
- */
-
-static int
-xmlModulePlatformClose(void *handle)
-{
-    return DosFreeModule(handle);
-}
-
-/*
- * xmlModulePlatformSymbol:
- * os2 api info: http://www.edm2.com/os2api/Dos/DosQueryProcAddr.html
- * returns 0 on success and the loaded symbol in result, and -1 on error.
- */
-
-static int
-xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
-{
-    int rc;
-
-    rc = DosQueryProcAddr(handle, 0, name, symbol);
-
-    return (rc == NO_ERROR) ? 0 : -1;
-}
-
-#endif /* HAVE_OS2 */
-
-#define bottom_xmlmodule
-#include "elfgcchack.h"
 #endif /* LIBXML_MODULES_ENABLED */
