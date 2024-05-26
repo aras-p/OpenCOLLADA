@@ -883,6 +883,7 @@ namespace COLLADABU
 		//   http://tools.ietf.org/html/rfc3986#appendix-B
 		// regular expression: "^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?"
 
+		// Fragment: everything after '#'
 		String uri = uriRef;
 		size_t fragmentPos = uri.find_first_of('#');
 		if (fragmentPos != String::npos)
@@ -895,10 +896,11 @@ namespace COLLADABU
 			fragment.clear();
 		}
 
+		// Query: everything starting with '?'
 		size_t queryPos = uri.find_first_of('?');
 		if (queryPos != String::npos)
 		{
-			query = uri.substr(queryPos + 1);
+			query = uri.substr(queryPos);
 			uri.resize(queryPos);
 		}
 		else
@@ -906,46 +908,39 @@ namespace COLLADABU
 			query.clear();
 		}
 
-		String schemeSep = "://";
-		size_t schemeEndPos = uri.find(schemeSep);
-		bool hadDoubleSlash = false;
-		if (schemeEndPos != String::npos)
+		// Scheme: everything before first ':', if result is not empty and would not contain '/'
+		size_t schemePos = uri.find_first_of(':');
+		size_t slashPos = uri.find_first_of('/');
+		if (schemePos != String::npos && schemePos != 0 && (slashPos == String::npos || slashPos > schemePos))
 		{
-			scheme = uri.substr(0, schemeEndPos);
-			uri = uri.substr(schemeEndPos + schemeSep.size());
-			hadDoubleSlash = true;
+			scheme = uri.substr(0, schemePos);
+			uri = uri.substr(schemePos + 1);
 		}
 		else
 		{
 			scheme.clear();
 		}
 
-		if (!hadDoubleSlash && uri.size() >= 2 && uri[0] == '/' && uri[1] == '/')
+		// Auth: if what remains starts with "//", from that until next slash
+		if (uri.size() >= 2 && uri[0] == '/' && uri[1] == '/')
 		{
-			hadDoubleSlash = true;
-			uri = uri.substr(2);
-		}
 
-		size_t pathPos = uri.find_first_of('/');
-		if (pathPos != String::npos)
-		{
-			path = uri.substr(pathPos + 1);
-			uri.resize(pathPos);
-			authority = uri;
-		}
-		else
-		{
-			if (hadDoubleSlash)
+			uri = uri.substr(2);
+			slashPos = uri.find_first_of('/');
+			if (slashPos == String::npos)
 			{
 				authority = uri;
-				path.clear();
+				uri = "";
 			}
 			else
 			{
-				authority.clear();
-				path = uri;
+				authority = uri.substr(0, slashPos);
+				uri = uri.substr(slashPos);
 			}
 		}
+
+		// What remains is path
+		path = uri;
 
 		return true;
 	}
