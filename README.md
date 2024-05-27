@@ -5,6 +5,7 @@ A fork of [OpenCOLLADA](https://github.com/KhronosGroup/OpenCOLLADA) which seems
 ### Changes from official project
 
 * Applied [Blender patch](https://projects.blender.org/blender/blender/src/commit/63f211475/build_files/build_environment/patches/opencollada.diff)
+  that is mostly fixing performance issues where hot loops were copying things being iterated on by value.
 * Build: Fix build with Visual Studio 2022 / Clang 14, and in general require at least C++11.
 * Build: CMake parallel compilation in MSVC.
 * Build: Removed SCons build system and Visual Studio / Xcode project files.
