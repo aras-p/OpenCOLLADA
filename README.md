@@ -2,7 +2,22 @@
 
 A fork of [OpenCOLLADA](https://github.com/KhronosGroup/OpenCOLLADA) which seems to be not updated since 2018.
 
+*"Bbbbut why?"*
+
+Blender has Collada import/export via OpenCOLLADA library. Now, at this point there aren't _many_ Collada users left within Blender,
+but there are _some_. However, full OpenCOLLADA embeds several external libraries, many of which were not updated for many years.
+That is not bad per se, except said externals are known to have 18 "critical" CVEs and 42 "high" CVEs. It did not _feel good_ to
+keep embedding a library that embeds this many known security issues.
+
+Thus this fork. It removes everything (a lot!) that is not actually needed by Blender, and either removes usages of some externals,
+or updates them to more recent versions. Blender is switching to this fork for Blender 4.2. FYI, Collada support overall within
+Blender is still marked as "legacy" and is on a chopping block for possible removal in Blender 4.5 or 5.0. But at least for now,
+fewer embedded security issues. See [this thread](https://devtalk.blender.org/t/moving-collada-i-o-to-legacy-status/34621) for
+more details.
+
 ### Changes from official project
+
+TL;DR: removed everything that Blender does not need, updated externals to more recent versions.
 
 * Applied [Blender patch](https://projects.blender.org/blender/blender/src/commit/63f211475/build_files/build_environment/patches/opencollada.diff)
   that is mostly fixing performance issues where hot loops were copying things being iterated on by value.
