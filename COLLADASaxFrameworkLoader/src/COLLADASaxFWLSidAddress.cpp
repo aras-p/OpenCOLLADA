@@ -103,6 +103,8 @@ namespace COLLADASaxFWL
 			}
 		}
 
+		mIsValid = true;
+
 		// Original code was using regular expression: "(.+)\.(.+)"
 		size_t lastSidStart = lastSidSeparator + 1;
 		size_t dotPos = sidAddress.find_last_of('.', lastSidStart);
@@ -123,9 +125,6 @@ namespace COLLADASaxFWL
 
 			mMemberSelectionName = sidAddress.substr(dotPos + 1);
 			mMemberSelection = MEMBER_SELECTION_NAME;
-
-			mIsValid = true;
-
 		}
 		else
 		{
