@@ -11,7 +11,7 @@ keep embedding a library that embeds this many known security issues.
 
 Thus this fork. It removes everything (a lot!) that is not actually needed by Blender, and either removes usages of some externals,
 or updates them to more recent versions. Blender is switching to this fork for Blender 4.2. FYI, Collada support overall within
-Blender is still marked as "legacy" and is on a chopping block for possible removal in Blender 4.5 or 5.0. But at least for now,
+Blender is still marked as "legacy" and is on a chopping block for possible removal in Blender 5.0. But at least for now,
 fewer embedded security issues. See [this thread](https://devtalk.blender.org/t/moving-collada-i-o-to-legacy-status/34621) for
 more details.
 
